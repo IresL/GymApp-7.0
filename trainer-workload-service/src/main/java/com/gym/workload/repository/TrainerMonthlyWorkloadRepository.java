@@ -1,0 +1,15 @@
+package com.gym.workload.repository;
+
+import com.gym.workload.entity.TrainerMonthlyWorkload;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface TrainerMonthlyWorkloadRepository extends JpaRepository<TrainerMonthlyWorkload, Long> {
+
+    Optional<TrainerMonthlyWorkload> findByTrainerUsernameAndYearAndMonth(
+            String trainerUsername, int year, int month);
+
+    List<TrainerMonthlyWorkload> findByTrainerUsername(String trainerUsername);
+}
