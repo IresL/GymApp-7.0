@@ -14,10 +14,19 @@ spring:
       ddl-auto: update
     show-sql: false
 
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+  jms:
+    listener:
+      acknowledge-mode: auto
+
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka
+
 
 jwt:
   secret: "change-me-please-change-me-please-change-me-32+"

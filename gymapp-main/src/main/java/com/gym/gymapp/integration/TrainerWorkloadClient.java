@@ -1,11 +1,12 @@
 package com.gym.gymapp.integration;
 
+import com.gym.gymapp.config.JmsConfig;
 import com.gym.gymapp.dto.TrainingDto;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.http.HttpHeaders;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -15,23 +16,23 @@ public class TrainerWorkloadClient {
 
     private static final Logger log = LoggerFactory.getLogger(TrainerWorkloadClient.class);
 
-    private final TrainerWorkloadFeignClient feignClient;
+    private final JmsTemplate jmsTemplate;
 
-    public TrainerWorkloadClient(TrainerWorkloadFeignClient feignClient) {
-        this.feignClient = feignClient;
+    public TrainerWorkloadClient(JmsTemplate jmsTemplate) {
+        this.jmsTemplate = jmsTemplate;
     }
 
     @CircuitBreaker(name = "workloadService", fallbackMethod = "fallback")
     public void sendTrainingAdded(TrainingDto training, String authHeader) {
-        send(training, authHeader, TrainerWorkloadRequest.ActionType.ADD);
+        send(training, TrainerWorkloadRequest.ActionType.ADD);
     }
 
     @CircuitBreaker(name = "workloadService", fallbackMethod = "fallback")
     public void sendTrainingDeleted(TrainingDto training, String authHeader) {
-        send(training, authHeader, TrainerWorkloadRequest.ActionType.DELETE);
+        send(training, TrainerWorkloadRequest.ActionType.DELETE);
     }
 
-    private void send(TrainingDto training, String authHeader, TrainerWorkloadRequest.ActionType action) {
+    private void send(TrainingDto training, TrainerWorkloadRequest.ActionType action) {
         if (training == null) {
             log.error("Cannot send workload update: training is null");
             throw new IllegalArgumentException("Training must not be null when sending workload update");
@@ -55,21 +56,20 @@ public class TrainerWorkloadClient {
             txId = "missing-tx-id";
         }
 
-        log.info("Sending workload update via Feign: trainer={}, action={}, txId={}",
+        log.info("Sending workload update via JMS: trainer={}, action={}, txId={}",
                 payload.getTrainerUsername(), action, txId);
 
-        feignClient.sendWorkload(
-                payload.getTrainerUsername(),
-                payload,
-                authHeader != null ? authHeader : "",
-                txId
-        );
+        final String finalTxId = txId;
+        jmsTemplate.convertAndSend(JmsConfig.TRAINER_WORKLOAD_QUEUE, payload, message -> {
+            message.setStringProperty("X-Transaction-Id", finalTxId);
+            return message;
+        });
     }
 
     @SuppressWarnings("unused")
     private void fallback(TrainingDto training, String authHeader, Throwable ex) {
         String txId = MDC.get("transactionId");
-        log.warn("Workload service call failed for trainer {} (txId={}): {}",
+        log.warn("Workload message send failed for trainer {} (txId={}): {}",
                 training != null ? training.getTrainerUsername() : "null",
                 txId,
                 ex.getMessage());
