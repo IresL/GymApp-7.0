@@ -4,10 +4,11 @@ import lombok.Data;
 
 @Data
 public class TrainingCreateRequest {
-    private Long traineeId;
-    private Long trainerId;
-    private String trainingName;
+
+    private String traineeUsername;
+    private String trainerUsername;
+    private String trainingDate;     // yyyy-MM-dd
+    private Integer durationMinutes; // 60
     private Long trainingTypeId;
-    private String trainingDate;
-    private int trainingDuration;
+    private String trainingName;
 }

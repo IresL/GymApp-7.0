@@ -49,24 +49,27 @@ public class TrainingService {
      * ტრენინგის შექმნა Request-ის მიხედვით
      */
     public TrainingDto create(TrainingCreateRequest request) {
-        Trainee trainee = traineeRepository.findById(request.getTraineeId())
-                .orElseThrow(() -> new IllegalArgumentException("Trainee not found: " + request.getTraineeId()));
+        Trainee trainee = traineeRepository.findByUserUsername(request.getTraineeUsername())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Trainee not found: " + request.getTraineeUsername()));
 
-        Trainer trainer = trainerRepository.findById(request.getTrainerId())
-                .orElseThrow(() -> new IllegalArgumentException("Trainer not found: " + request.getTrainerId()));
+        Trainer trainer = trainerRepository.findByUserUsername(request.getTrainerUsername())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Trainer not found: " + request.getTrainerUsername()));
 
         TrainingType trainingType = trainingTypeRepository.findById(request.getTrainingTypeId())
-                .orElseThrow(() -> new IllegalArgumentException("TrainingType not found: " + request.getTrainingTypeId()));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("TrainingType not found: " + request.getTrainingTypeId()));
 
         LocalDate date = LocalDate.parse(request.getTrainingDate());
 
         Training training = Training.builder()
                 .trainee(trainee)
                 .trainer(trainer)
-                .trainingName(request.getTrainingName())
                 .trainingType(trainingType)
                 .trainingDate(date)
-                .trainingDuration(request.getTrainingDuration())
+                .trainingDuration(request.getDurationMinutes())
+                .trainingName(request.getTrainingName())
                 .build();
 
         Training saved = trainingRepository.save(training);

@@ -14,7 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -26,23 +25,31 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+
+        // თუ Authorization header არ არის ან არ იწყება "Bearer "–ით → უშვებთ შემდეგ filter-ს
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         String token = authHeader.substring(7);
+
         try {
+            // ვამოწმებთ token-ს – თუ არასწორია, exception გაფრინდება
             jwtService.parseToken(token);
+
             UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken("microservice", null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_INTERNAL")));
+                    new UsernamePasswordAuthenticationToken(
+                            "microservice",
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_INTERNAL"))
+                    );
+
             SecurityContextHolder.getContext().setAuthentication(auth);
         } catch (Exception ex) {
             SecurityContextHolder.clearContext();
